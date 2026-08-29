@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <!-- Background with a soft, warm pastel gradient representing premium cream -->
+  <defs>
+    <linearGradient id="cream-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="50%" stop-color="#F7F3EA" />
+      <stop offset="100%" stop-color="#EBE3D5" />
+    </linearGradient>
+    <linearGradient id="shimmer" x1="-100%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0)" />
+      <stop offset="50%" stop-color="rgba(255,255,255,0.4)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </linearGradient>
+    
+    <!-- Minimalist ice cream icon shape -->
+    <path id="ice-cream-icon" d="M380 340 L380 430 Q380 440 390 440 L410 440 Q420 440 420 430 L420 340 Z 
+                                 M350 300 Q350 250 400 250 Q450 250 450 300 L450 340 L350 340 Z" />
+  </defs>
+
+  <!-- Base gradient -->
+  <rect width="100%" height="100%" fill="url(#cream-bg)" />
+
+  <!-- Subtle abstract swooshes representing ice cream swirls -->
+  <path d="M0 600 C 200 500, 400 650, 800 450 L 800 600 Z" fill="#E8DEC9" opacity="0.4" />
+  <path d="M0 0 C 300 100, 500 -50, 800 150 L 800 0 L 0 0 Z" fill="#F9F6F0" opacity="0.6" />
+
+  <!-- Central elegant icon and text -->
+  <g transform="translate(0, -20)">
+    <!-- Ice Cream Icon -->
+    <use href="#ice-cream-icon" fill="#8C7A6B" opacity="0.8" />
+    <!-- Text -->
+    <text x="400" y="470" font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="300" font-size="16" fill="#8C7A6B" text-anchor="middle" letter-spacing="3">GLACÉ</text>
+    <text x="400" y="500" font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="400" font-size="12" fill="#A89A8E" text-anchor="middle" letter-spacing="1">PREMIUM ICE CREAM</text>
+  </g>
+</svg>
