@@ -4,32 +4,25 @@ const authService = require('../services/authService');
 
 async function seedAdmin() {
   try {
-    console.log('Checking for existing admin accounts...');
-    const [existingAdmins] = await db.query('SELECT id FROM users WHERE role = "admin"');
-    
-    if (existingAdmins.length > 0) {
-      console.log('Admin account already exists. Skipping seed.');
-      process.exit(0);
-    }
-
-    console.log('Creating default admin account...');
+    console.log('Verifying admin account (admin@glace.com)...');
     const adminEmail = 'admin@glace.com';
-    const adminPassword = 'Admin123!';
+    const adminPassword = process.env.ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'GlaceAdmin2026!#Secure';
     const passwordHash = await authService.hashPassword(adminPassword);
 
-    await db.query(
-      'INSERT INTO users (first_name, last_name, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)',
-      ['System', 'Admin', adminEmail, passwordHash, 'admin', 'active']
-    );
-
-    console.log(`
-✅ Default Admin Created!
-------------------------------------
-Email: ${adminEmail}
-Password: ${adminPassword}
-------------------------------------
-PLEASE CHANGE PASSWORD AFTER DEPLOYMENT
-    `);
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [adminEmail]);
+    if (existing.length > 0) {
+      await db.query(
+        'UPDATE users SET password_hash = ?, role = "admin", status = "active", updated_at = NOW() WHERE email = ?',
+        [passwordHash, adminEmail]
+      );
+      console.log('✅ Admin credentials updated for admin@glace.com.');
+    } else {
+      await db.query(
+        'INSERT INTO users (first_name, last_name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ['GLACÉ', 'Administrator', adminEmail, '9811198111', passwordHash, 'admin', 'active']
+      );
+      console.log('✅ Default Admin Created for admin@glace.com.');
+    }
 
     process.exit(0);
   } catch (error) {

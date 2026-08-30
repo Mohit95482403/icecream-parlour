@@ -223,19 +223,31 @@ async function runProductionMigration() {
       console.log('ℹ️ Coupons already exist.');
     }
 
-    // 9. Ensure Seed Admin User exists
-    console.log('👤 Checking admin account...');
-    const [admins] = await connection.query('SELECT id, email FROM users WHERE role = "admin" LIMIT 1');
-    if (admins.length === 0) {
-      console.log('Creating default production administrator (admin@glace.com)...');
-      const hash = await bcrypt.hash('Admin@Glace2026!', 10);
+    // 9. Ensure Seed Admin User exists & has verified credentials
+    console.log('👤 Checking administrator account (admin@glace.com)...');
+    const authService = require('../services/authService');
+    const adminEmail = 'admin@glace.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'GlaceAdmin2026!#Secure';
+    const adminHash = await authService.hashPassword(adminPassword);
+
+    const [adminRows] = await connection.query('SELECT id, email, role, status FROM users WHERE email = ?', [adminEmail]);
+
+    if (adminRows.length === 0) {
       await connection.query(`
         INSERT INTO users (first_name, last_name, email, phone, password_hash, role, status)
-        VALUES ('GLACÉ', 'Administrator', 'admin@glace.com', '9811198111', ?, 'admin', 'active')
-      `, [hash]);
-      console.log('✅ Default admin user created (admin@glace.com).');
+        VALUES ('GLACÉ', 'Administrator', ?, '9811198111', ?, 'admin', 'active')
+      `, [adminEmail, adminHash]);
+      console.log('✅ Created primary production administrator account (admin@glace.com).');
     } else {
-      console.log(`ℹ️ Admin user already present: ${admins[0].email}`);
+      await connection.query(`
+        UPDATE users SET 
+          role = 'admin', 
+          status = 'active', 
+          password_hash = ?, 
+          updated_at = NOW() 
+        WHERE email = ?
+      `, [adminHash, adminEmail]);
+      console.log('✅ Synchronized and verified production administrator account (admin@glace.com).');
     }
 
     // 10. Read-only Verification & Summary
