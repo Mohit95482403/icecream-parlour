@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import adminApi from '../../utils/adminApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import SEO from '../../components/seo/SEO';
 
 const AdminLogin = () => {
@@ -12,7 +11,7 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { checkAuth } = useAuth();
+  const { adminLogin } = useAdminAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,13 +25,11 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const res = await adminApi.post('/auth/login', { email, password });
-      if (res.data.success) {
-        await checkAuth(); // Refresh global auth state
-        navigate('/admin/dashboard');
-      }
+      await adminLogin({ email, password });
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Invalid email or password.');
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Invalid email or password.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -62,8 +59,9 @@ const AdminLogin = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field"
-              placeholder="admin@example.com"
+              placeholder="admin@glace.com"
               autoComplete="email"
+              required
             />
           </div>
 
@@ -79,6 +77,7 @@ const AdminLogin = () => {
                 className="input-field pr-12"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                required
               />
               <button
                 type="button"

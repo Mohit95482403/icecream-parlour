@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { adminSettingsApi } from '../../services/admin/adminSettingsApi';
 import { toast } from 'react-hot-toast';
 import { Store, Bell, Lock, Activity, Save, Loader2, ChevronRight, Info } from 'lucide-react';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { adminUser: user } = useAdminAuth();
   
   const [activeTab, setActiveTab] = useState('general');
   const [isLoading, setIsLoading] = useState(true);

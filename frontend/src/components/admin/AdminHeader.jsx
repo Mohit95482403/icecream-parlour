@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, User, LogOut, Settings } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '../notifications/NotificationBell';
 
 const AdminHeader = ({ openMobileMenu }) => {
-  const { user, logout } = useAuth();
+  const { adminUser, adminLogout } = useAdminAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
@@ -22,8 +22,8 @@ const AdminHeader = ({ openMobileMenu }) => {
   }, []);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/admin/login');
+    await adminLogout();
+    navigate('/admin/login', { replace: true });
   };
 
   return (
@@ -35,7 +35,6 @@ const AdminHeader = ({ openMobileMenu }) => {
         >
           <Menu size={24} />
         </button>
-        {/* Can put page context/breadcrumbs here later if desired */}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
@@ -47,10 +46,10 @@ const AdminHeader = ({ openMobileMenu }) => {
             className="flex items-center gap-2 p-1 pl-2 pr-3 bg-white border border-warm-taupe/30 rounded-full hover:border-warm-taupe/60 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-espresso text-ivory flex items-center justify-center text-sm font-medium">
-              {user?.firstName?.charAt(0) || 'A'}
+              {adminUser?.first_name?.charAt(0) || 'A'}
             </div>
             <span className="text-sm font-medium hidden sm:block">
-              {user?.firstName || 'Admin'}
+              {adminUser?.first_name || 'Admin'}
             </span>
           </button>
 
@@ -58,27 +57,25 @@ const AdminHeader = ({ openMobileMenu }) => {
             <div className="absolute right-0 mt-2 w-56 bg-white border border-warm-taupe/20 rounded-xl shadow-lg py-2 z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-warm-taupe/10 mb-2">
                 <p className="text-sm font-medium text-espresso truncate">
-                  {user?.firstName} {user?.lastName}
+                  {adminUser?.first_name ? `${adminUser.first_name} ${adminUser.last_name || ''}`.trim() : 'Administrator'}
                 </p>
-                <p className="text-xs text-espresso/60 truncate mt-0.5">
-                  {user?.email}
-                </p>
+                <p className="text-xs text-espresso/60 truncate">{adminUser?.email || 'admin@glace.com'}</p>
               </div>
-              
+
               <button 
                 onClick={() => { setShowProfileMenu(false); navigate('/admin/settings'); }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-espresso/80 hover:text-espresso hover:bg-warm-taupe/10 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm text-espresso/80 hover:bg-warm-taupe/10 flex items-center gap-2 transition-colors"
               >
                 <Settings size={16} />
-                Profile & Settings
+                Settings
               </button>
-              
+
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-berry hover:bg-berry/5 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm text-berry hover:bg-berry/10 flex items-center gap-2 transition-colors border-t border-warm-taupe/10 mt-2 pt-2"
               >
                 <LogOut size={16} />
-                Sign out
+                Sign Out
               </button>
             </div>
           )}
