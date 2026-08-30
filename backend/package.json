@@ -4,8 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/run_production_migration.js && node server.js",
     "dev": "node server.js",
+    "build": "node scripts/run_production_migration.js",
     "db:migrate": "node scripts/run_production_migration.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
