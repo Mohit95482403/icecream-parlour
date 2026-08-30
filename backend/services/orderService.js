@@ -260,7 +260,7 @@ class OrderService {
               is_gift_order as isGiftOrder, gift_recipient_name as giftRecipientName,
               gift_recipient_address as giftRecipientAddress, gift_recipient_city as giftRecipientCity,
               gift_recipient_postal_code as giftRecipientPostalCode
-       FROM orders WHERE order_number = ? AND user_id = ?`,
+       FROM orders WHERE order_number = ? AND user_id = ? AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = orders.id)`,
       [orderNumber, customerId]
     );
 

@@ -247,7 +247,11 @@ const orderController = {
     try {
       const userId = req.user.sub;
       const [orders] = await db.query(
-        'SELECT order_number, created_at, order_status, cancellation_status, payment_status, total_amount, is_gift_order FROM orders WHERE user_id = ? ORDER BY created_at DESC', 
+        `SELECT o.order_number, o.created_at, o.order_status, o.cancellation_status, o.payment_status, o.total_amount, o.is_gift_order 
+         FROM orders o 
+         WHERE o.user_id = ? 
+           AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id)
+         ORDER BY o.created_at DESC`, 
         [userId]
       );
       
@@ -263,7 +267,13 @@ const orderController = {
       const userId = req.user.sub;
       const { orderNumber } = req.params;
       
-      const [orders] = await db.query('SELECT * FROM orders WHERE (order_number = ? OR id = ?) AND user_id = ?', [orderNumber, orderNumber, userId]);
+      const [orders] = await db.query(
+        `SELECT * FROM orders 
+         WHERE (order_number = ? OR id = ?) 
+           AND user_id = ? 
+           AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = orders.id)`, 
+        [orderNumber, orderNumber, userId]
+      );
       
       if (orders.length === 0) {
         return res.status(404).json({ success: false, error: { message: 'Order not found' } });

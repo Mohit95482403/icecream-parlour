@@ -26,7 +26,7 @@ exports.getOrders = async (req, res) => {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN deliveries d ON o.id = d.order_id
       LEFT JOIN refunds r ON o.id = r.order_id
-      WHERE 1=1
+      WHERE EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id)
     `;
     
     let countQuery = `
@@ -35,7 +35,7 @@ exports.getOrders = async (req, res) => {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN deliveries d ON o.id = d.order_id
       LEFT JOIN refunds r ON o.id = r.order_id
-      WHERE 1=1
+      WHERE EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id)
     `;
 
     const queryParams = [];
@@ -130,7 +130,8 @@ exports.getOrderSummary = async (req, res) => {
         SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
         SUM(CASE WHEN payment_status = 'refunded' THEN 1 ELSE 0 END) as refunded,
         SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END) as revenue
-      FROM orders
+      FROM orders o
+      WHERE EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id)
     `);
 
     res.json(rows[0] || {
@@ -157,7 +158,7 @@ exports.getOrderById = async (req, res) => {
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN deliveries d ON o.id = d.order_id
       LEFT JOIN delivery_partners dp ON d.delivery_partner_id = dp.id
-      WHERE o.id = ?
+      WHERE o.id = ? AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id)
     `, [id]);
 
     if (!orders.length) return res.status(404).json({ message: 'Order not found' });
