@@ -1,5 +1,5 @@
-const jwt = require('./server/node_modules/jsonwebtoken');
-const db = require('./server/config/db');
+const jwt = require('../backend/node_modules/jsonwebtoken');
+const db = require('../backend/config/db');
 
 async function testAdminDeleteFlow() {
   console.log('🧪 Starting Admin Gift Card Delete & Customer Integrity Verification...\n');

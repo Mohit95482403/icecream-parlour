@@ -3,7 +3,7 @@ services:
     name: glace-icecream-api
     env: node
     plan: free
-    rootDir: server
+    rootDir: backend
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health

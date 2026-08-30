@@ -1,6 +1,6 @@
-const db = require('./server/config/db');
-const cartValidationService = require('./server/services/cartValidationService');
-const orderService = require('./server/services/orderService');
+const db = require('../backend/config/db');
+const cartValidationService = require('../backend/services/cartValidationService');
+const orderService = require('../backend/services/orderService');
 
 async function runTests() {
   console.log('--- Starting Verification & Testing ---\n');

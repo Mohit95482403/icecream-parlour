@@ -1,5 +1,5 @@
-const db = require('./server/config/db');
-const orderService = require('./server/services/orderService');
+const db = require('../backend/config/db');
+const orderService = require('../backend/services/orderService');
 
 async function runTests() {
   console.log('====================================================');

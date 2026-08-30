@@ -1,7 +1,7 @@
-const jwt = require('./server/node_modules/jsonwebtoken');
-const db = require('./server/config/db');
+const jwt = require('../backend/node_modules/jsonwebtoken');
+const db = require('../backend/config/db');
 
-require('./server/node_modules/dotenv').config({ path: './server/.env' });
+require('../backend/node_modules/dotenv').config({ path: '../backend/.env' });
 const JWT_SECRET = process.env.JWT_SECRET || 'premium_icecream_secret_key_change_me';
 const API_BASE = 'http://localhost:5000/api';
 

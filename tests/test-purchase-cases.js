@@ -1,5 +1,5 @@
-const jwt = require('./server/node_modules/jsonwebtoken');
-const db = require('./server/config/db');
+const jwt = require('../backend/node_modules/jsonwebtoken');
+const db = require('../backend/config/db');
 
 async function testAllPurchaseCases() {
   console.log('🧪 Running Comprehensive Gift Card Purchase Test Suite...\n');

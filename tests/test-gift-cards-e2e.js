@@ -1,9 +1,9 @@
-const db = require('./server/config/db');
-const giftCardService = require('./server/services/giftCardService');
-const orderService = require('./server/services/orderService');
-const paymentService = require('./server/services/paymentService');
-const cancellationService = require('./server/services/cancellationService');
-const refundService = require('./server/services/refundService');
+const db = require('../backend/config/db');
+const giftCardService = require('../backend/services/giftCardService');
+const orderService = require('../backend/services/orderService');
+const paymentService = require('../backend/services/paymentService');
+const cancellationService = require('../backend/services/cancellationService');
+const refundService = require('../backend/services/refundService');
 
 async function runE2ETests() {
   console.log('🧪 Starting Gift Card System Comprehensive E2E Verification...\n');

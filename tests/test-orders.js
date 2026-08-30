@@ -1,5 +1,5 @@
-const db = require('./server/config/db');
-const orderEventService = require('./server/services/orderEventService');
+const db = require('../backend/config/db');
+const orderEventService = require('../backend/services/orderEventService');
 
 async function testBackend() {
   console.log('--- STARTING DAY 14 BACKEND TESTS ---');
