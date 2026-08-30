@@ -97,8 +97,14 @@ const giftCardController = {
           0.00,
           0.00,
           parsedAmount,
-          'digital',
-          JSON.stringify({ type: 'gift_card' }),
+          'delivery',
+          JSON.stringify({ 
+            type: 'gift_card',
+            recipientEmail: recipientEmail.trim().toLowerCase(),
+            recipientName: recipientName ? recipientName.trim() : 'Valued Customer',
+            senderName: senderName ? senderName.trim() : `${buyer.first_name} ${buyer.last_name}`,
+            personalMessage: personalMessage ? personalMessage.trim() : null
+          }),
           'pending',
           'pending',
           `Glacé Gift Card purchase (₹${parsedAmount})`
