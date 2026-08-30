@@ -1,6 +1,5 @@
 const db = require('../config/db');
 const orderEventService = require('../services/orderEventService');
-const bcrypt = require('bcryptjs');
 
 exports.getDeliveries = async (req, res) => {
   try {
@@ -17,7 +16,8 @@ exports.getDeliveries = async (req, res) => {
                WHEN u.id IS NOT NULL THEN CONCAT(u.first_name, ' ', u.last_name)
                ELSE CONCAT(o.guest_first_name, ' ', o.guest_last_name)
              END as customer_name,
-             CONCAT(dp.name, '') as delivery_person_name
+             dp.name as delivery_person_name,
+             dp.phone as delivery_person_phone
       FROM deliveries d
       JOIN orders o ON d.order_id = o.id
       LEFT JOIN users u ON o.user_id = u.id
@@ -92,7 +92,7 @@ exports.getDeliveries = async (req, res) => {
 exports.getEligibleDeliveryPersonnel = async (req, res) => {
   try {
     const [personnel] = await db.query(
-      "SELECT id, name as first_name, '' as last_name, email, phone, status, created_at FROM delivery_partners ORDER BY id DESC"
+      "SELECT id, name, name as first_name, '' as last_name, email, phone, status, created_at FROM delivery_partners ORDER BY id DESC"
     );
     res.json(personnel);
   } catch (error) {
@@ -103,50 +103,59 @@ exports.getEligibleDeliveryPersonnel = async (req, res) => {
 
 exports.addDeliveryPersonnel = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password, status = 'active' } = req.body;
+    const { firstName, lastName, name, email, phone, status = 'active' } = req.body;
 
-    if (!firstName || !email || !password) {
-      return res.status(400).json({ message: 'First name, email, and password are required' });
+    const agentName = (name || `${firstName || ''} ${lastName || ''}`).trim();
+    const agentPhone = (phone || '').trim();
+    const agentEmail = (email || '').trim().toLowerCase();
+
+    if (!agentName) {
+      return res.status(400).json({ success: false, message: 'Agent name is required' });
+    }
+    if (!agentPhone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length) {
-      return res.status(400).json({ message: 'An account with this email already exists' });
+    // Check for duplicate in delivery_partners
+    let checkSql = 'SELECT id FROM delivery_partners WHERE phone = ?';
+    const checkParams = [agentPhone];
+    if (agentEmail) {
+      checkSql += ' OR email = ?';
+      checkParams.push(agentEmail);
     }
 
-    await db.query('BEGIN');
+    const [existing] = await db.query(checkSql, checkParams);
+    if (existing.length > 0) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'A delivery partner with this phone number or email already exists' 
+      });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const partnerStatus = status === 'inactive' ? 'inactive' : 'active';
 
-    const [userResult] = await db.query(
-      'INSERT INTO users (first_name, last_name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [firstName, lastName || '', email, phone || null, hashedPassword, 'delivery', status === 'active' ? 'active' : 'blocked']
-    );
-
-    const fullName = `${firstName} ${lastName || ''}`.trim();
-    const [partnerResult] = await db.query(
+    const [result] = await db.query(
       'INSERT INTO delivery_partners (name, phone, email, status) VALUES (?, ?, ?, ?)',
-      [fullName, phone || null, email, status]
+      [agentName, agentPhone, agentEmail || null, partnerStatus]
     );
 
-    await db.query('COMMIT');
-
-    res.json({
+    return res.status(201).json({
       success: true,
       message: 'Delivery agent added successfully',
       agent: {
-        id: partnerResult.insertId,
-        first_name: fullName,
-        email,
-        phone,
-        status
+        id: result.insertId,
+        name: agentName,
+        first_name: firstName || agentName,
+        last_name: lastName || '',
+        email: agentEmail || null,
+        phone: agentPhone,
+        status: partnerStatus
       }
     });
 
   } catch (error) {
-    await db.query('ROLLBACK');
     console.error('Error adding delivery agent:', error);
-    res.status(500).json({ message: 'Error adding delivery agent' });
+    res.status(500).json({ success: false, message: error.message || 'Error adding delivery agent' });
   }
 };
 
@@ -172,19 +181,16 @@ exports.assignDelivery = async (req, res) => {
       return res.status(400).json({ message: 'Delivery is already in a terminal state.' });
     }
 
-    // Verify user exists and is eligible
+    // Verify delivery partner exists and is active
     if (delivery_partner_id) {
-      const [users] = await db.query("SELECT id FROM delivery_partners WHERE id = ? AND status = 'active'", [delivery_partner_id]);
-      if (!users.length) return res.status(400).json({ message: 'Invalid or inactive delivery person' });
+      const [partners] = await db.query("SELECT id FROM delivery_partners WHERE id = ? AND status = 'active'", [delivery_partner_id]);
+      if (!partners.length) return res.status(400).json({ message: 'Invalid or inactive delivery person' });
     }
 
     await db.query(
       `UPDATE deliveries SET delivery_partner_id = ?, status = 'assigned', assigned_at = NOW(), updated_at = NOW() WHERE id = ?`,
       [delivery_partner_id, id]
     );
-
-    // Also transition order status to 'processing' or 'ready' if it was pending? 
-    // We'll leave order_status alone here, admin updates it separately, or we log a note.
     
     res.json({ message: 'Delivery assigned successfully' });
   } catch (error) {
@@ -230,7 +236,6 @@ exports.updateDeliveryStatus = async (req, res) => {
     updateParams.push(id);
 
     // Sync order status if out for delivery or delivered
-    // We use orderEventService to safely transition and log
     const [orders] = await db.query('SELECT order_number, user_id FROM orders WHERE id = ?', [orderId]);
     if (orders.length) {
        if (status === 'out_for_delivery') {
@@ -242,8 +247,7 @@ exports.updateDeliveryStatus = async (req, res) => {
             orderId, orders[0].order_number, orders[0].user_id, 'delivered', 'admin', req.user.sub, 'Delivery status updated to delivered'
           );
        } else {
-         // Just update the delivery row
-         await db.query(`UPDATE deliveries SET ${updateFields} WHERE id = ?`, updateParams);
+          await db.query(`UPDATE deliveries SET ${updateFields} WHERE id = ?`, updateParams);
        }
     } else {
       await db.query(`UPDATE deliveries SET ${updateFields} WHERE id = ?`, updateParams);
