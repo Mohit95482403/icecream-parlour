@@ -418,7 +418,7 @@ const OrderDetail = () => {
                   <p className="text-sm text-warm-taupe">{item.variant_name} x {item.quantity}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-midnight-charcoal font-medium">₹{item.total_price}</p>
+                  <p className="text-midnight-charcoal font-medium">₹{item.line_total || item.total_price || (item.unit_price * item.quantity)}</p>
                   {order.order_status === 'delivered' && item.product_id && (
                     reviewedItems[item.product_id] ? (
                       <span className="text-xs text-pistachio font-medium px-3 py-1 bg-pistachio/10 border border-pistachio/20">✓ REVIEWED</span>

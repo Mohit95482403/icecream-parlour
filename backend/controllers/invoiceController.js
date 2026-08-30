@@ -126,7 +126,8 @@ const generateInvoicePDF = (res, order, items, payment, refund = null) => {
     const item = items[i];
     const itemName = item.product_name + (item.variant_name ? ` - ${item.variant_name}` : '');
     const price = `₹${parseFloat(item.unit_price).toFixed(2)}`;
-    const total = `₹${parseFloat(item.total_price).toFixed(2)}`;
+    const lineTotal = item.line_total != null ? item.line_total : item.total_price != null ? item.total_price : (item.unit_price * item.quantity);
+    const total = `₹${parseFloat(lineTotal).toFixed(2)}`;
     
     // Add page if position is too low
     if (position > 700) {

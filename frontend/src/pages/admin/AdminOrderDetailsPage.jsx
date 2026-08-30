@@ -264,7 +264,7 @@ const AdminOrderDetailsPage = () => {
                       </td>
                       <td className="py-3 text-right text-gray-600">{formatCurrency(item.unit_price)}</td>
                       <td className="py-3 text-right text-gray-600">× {item.quantity}</td>
-                      <td className="py-3 text-right font-medium text-gray-900">{formatCurrency(item.total_price)}</td>
+                      <td className="py-3 text-right font-medium text-gray-900">{formatCurrency(item.line_total != null ? item.line_total : item.total_price != null ? item.total_price : (item.unit_price * item.quantity))}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -141,7 +141,7 @@ class OrderService {
         const itemSql = `
           INSERT INTO order_items (
             order_id, product_id, variant_id, product_name, variant_name, 
-            sku, quantity, unit_price, total_price
+            sku, quantity, unit_price, line_total
           ) VALUES ?
         `;
         

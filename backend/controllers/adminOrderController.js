@@ -172,7 +172,11 @@ exports.getOrderById = async (req, res) => {
     }
 
     // 2. Order items
-    const [items] = await db.query('SELECT * FROM order_items WHERE order_id = ?', [id]);
+    const [rawItems] = await db.query('SELECT * FROM order_items WHERE order_id = ?', [id]);
+    const items = rawItems.map(item => ({
+      ...item,
+      total_price: item.line_total != null ? item.line_total : item.total_price
+    }));
 
     // 3. Status history
     const [history] = await db.query(`

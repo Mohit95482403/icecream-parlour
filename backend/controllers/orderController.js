@@ -272,7 +272,10 @@ const orderController = {
       const order = orders[0];
       
       const [items] = await db.query('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
-      order.items = items;
+      order.items = items.map(item => ({
+        ...item,
+        total_price: item.line_total != null ? item.line_total : item.total_price
+      }));
       try {
         order.delivery_address_snapshot = typeof order.delivery_address_snapshot === 'string'
           ? JSON.parse(order.delivery_address_snapshot || '{}')
