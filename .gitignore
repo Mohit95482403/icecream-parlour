@@ -24,10 +24,6 @@ build/
 uploads/*
 !uploads/.gitkeep
 
-# Legacy directories (may remain as locked stubs after rename)
-client/
-server/
-
 # Logs & System
 *.log
 .DS_Store
