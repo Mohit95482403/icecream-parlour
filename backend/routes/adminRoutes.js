@@ -17,6 +17,7 @@ router.use('/products', require('./adminProductRoutes'));
 router.use('/categories', require('./adminCategoryRoutes'));
 router.use('/inventory', require('./adminInventoryRoutes'));
 router.use('/orders', require('./adminOrderRoutes'));
+router.use('/users', require('./adminUserRoutes'));
 router.use('/deliveries', require('./adminDeliveryRoutes'));
 router.use('/coupons', require('./adminCouponRoutes'));
 router.use('/reviews', require('./adminReviewRoutes'));
