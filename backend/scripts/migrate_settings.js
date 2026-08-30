@@ -1,13 +1,7 @@
-require('dotenv').config();
-const mysql = require('mysql2/promise');
+const db = require('../config/db');
 
 async function migrate() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  });
+  const connection = await db.getConnection();
 
   try {
     console.log('Creating settings table...');
@@ -42,7 +36,7 @@ async function migrate() {
   } catch (error) {
     console.error('Migration failed:', error);
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 

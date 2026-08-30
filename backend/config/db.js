@@ -118,14 +118,13 @@ const dbInfo = getDatabaseConfig();
 const pool = mysql.createPool(dbInfo.config);
 
 // Log safe, non-sensitive startup diagnostics
-console.log('--- Database Configuration ---');
-console.log(`- Connection Mode: ${dbInfo.type}`);
-console.log(`- Host: ${dbInfo.host}`);
-console.log(`- Port: ${dbInfo.port}`);
-console.log(`- User Configured: ${Boolean(dbInfo.user)}`);
-console.log(`- Database: ${dbInfo.database}`);
-console.log(`- SSL Enabled: ${dbInfo.ssl}`);
-console.log('------------------------------');
+console.log('--- Database Startup Diagnostics ---');
+console.log(`Database host configured: ${dbInfo.host ? 'YES' : 'NO'}`);
+console.log(`Database port configured: ${dbInfo.port ? 'YES' : 'NO'}`);
+console.log(`Database user configured: ${dbInfo.user ? 'YES' : 'NO'}`);
+console.log(`Database name configured: ${dbInfo.database ? 'YES' : 'NO'}`);
+console.log(`Database SSL: ${dbInfo.ssl ? 'true' : 'false'}`);
+console.log('-------------------------------------');
 
 // Test connection on startup
 pool.getConnection()

@@ -1,13 +1,7 @@
-require('dotenv').config();
-const mysql = require('mysql2/promise');
+const db = require('../config/db');
 
 async function migrateBanner() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'icecream_db',
-  });
+  const connection = await db.getConnection();
 
   try {
     console.log('Connecting to database...');
@@ -64,7 +58,7 @@ async function migrateBanner() {
     console.error('❌ Migration failed:', error);
     process.exit(1);
   } finally {
-    await connection.end();
+    connection.release();
   }
 }
 
