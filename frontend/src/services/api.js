@@ -21,6 +21,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    if (error.response?.status === 401) {
+      const url = error.config?.url || '';
+      // If we got 401 on an authenticated request (not login/register), clear the invalid token
+      if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+        localStorage.removeItem('token');
+      }
+    }
     // Check for nested error object from our standard backend response
     const data = error.response?.data;
     const message = data?.error?.message || data?.message || 'An unexpected error occurred. Please try again.';

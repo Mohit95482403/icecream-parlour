@@ -104,11 +104,13 @@ const OrderDetail = () => {
   const handleDownloadInvoice = async () => {
     setIsDownloadingInvoice(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/orders/${orderNumber}/invoice`,
         {
           responseType: 'blob',
-          withCredentials: true
+          withCredentials: true,
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
         }
       );
       const url = window.URL.createObjectURL(new Blob([response.data]));

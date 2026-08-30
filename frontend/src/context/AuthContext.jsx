@@ -11,12 +11,25 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
+      const token = localStorage.getItem('token');
+      // If no token exists, do not trigger unnecessary 401 calls
+      if (!token) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
       const response = await authService.getCurrentUser();
       if (response?.data?.customer) {
         setUser(response.data.customer);
         setIsAuthenticated(true);
+      } else {
+        localStorage.removeItem('token');
+        setUser(null);
+        setIsAuthenticated(false);
       }
     } catch (error) {
+      localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -30,6 +43,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
+    const token = response?.data?.token || response?.token;
+    if (token) {
+      localStorage.setItem('token', token);
+    }
     if (response?.data?.customer) {
       setUser(response.data.customer);
       setIsAuthenticated(true);
@@ -39,6 +56,10 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const response = await authService.register(userData);
+    const token = response?.data?.token || response?.token;
+    if (token) {
+      localStorage.setItem('token', token);
+    }
     if (response?.data?.customer) {
       setUser(response.data.customer);
       setIsAuthenticated(true);
@@ -52,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Logout error', err);
     } finally {
+      localStorage.removeItem('token');
       setUser(null);
       setIsAuthenticated(false);
     }

@@ -44,7 +44,7 @@ const authController = {
 
       return res.status(201).json({
         success: true,
-        data: { customer: authService.sanitizeUser(user) }
+        data: { customer: authService.sanitizeUser(user), token }
       });
 
     } catch (error) {
