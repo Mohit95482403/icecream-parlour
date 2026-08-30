@@ -119,10 +119,11 @@ class ReviewService {
       [productId, limit, offset]
     );
 
-    const [[{ total }]] = await db.query(
+    const [countRows] = await db.query(
       'SELECT COUNT(*) as total FROM reviews WHERE product_id = ? AND status = ?',
       [productId, 'approved']
     );
+    const total = countRows[0]?.total || 0;
 
     return {
       reviews: reviews.map(r => ({
@@ -134,7 +135,7 @@ class ReviewService {
         verifiedPurchase: true,
         createdAt: r.created_at,
       })),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 }
     };
   }
 
@@ -142,11 +143,12 @@ class ReviewService {
    * Get rating summary for a product (only approved reviews).
    */
   async getProductRatingSummary(productId) {
-    const [[summary]] = await db.query(
+    const [summaryRows] = await db.query(
       `SELECT COUNT(*) as totalReviews, COALESCE(AVG(rating), 0) as averageRating
        FROM reviews WHERE product_id = ? AND status = 'approved'`,
       [productId]
     );
+    const summary = summaryRows[0] || { totalReviews: 0, averageRating: 0 };
 
     const [distribution] = await db.query(
       `SELECT rating, COUNT(*) as count
@@ -162,7 +164,7 @@ class ReviewService {
 
     return {
       averageRating: parseFloat(Number(summary.averageRating).toFixed(1)),
-      totalReviews: summary.totalReviews,
+      totalReviews: summary.totalReviews || 0,
       distribution: dist
     };
   }
@@ -196,43 +198,58 @@ class ReviewService {
    * Admin: Get all reviews with filters, search, pagination.
    */
   async getAdminReviews({ status, rating, search, page = 1, limit = 20 }) {
-    let sql = `
-      SELECT r.*, u.first_name, u.last_name, u.email,
-             p.name as product_name, o.order_number
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.max(1, parseInt(limit, 10) || 20);
+    const offset = (safePage - 1) * safeLimit;
+
+    let whereClause = 'WHERE 1=1';
+    const whereParams = [];
+
+    if (status && status !== 'all') {
+      whereClause += ' AND r.status = ?';
+      whereParams.push(status);
+    }
+    if (rating && String(rating).trim() !== '') {
+      whereClause += ' AND r.rating = ?';
+      whereParams.push(parseInt(rating, 10));
+    }
+    if (search && search.trim() !== '') {
+      whereClause += ' AND (u.first_name LIKE ? OR u.last_name LIKE ? OR p.name LIKE ? OR r.comment LIKE ? OR o.order_number LIKE ?)';
+      const q = `%${search.trim()}%`;
+      whereParams.push(q, q, q, q, q);
+    }
+
+    const fromClause = `
       FROM reviews r
       JOIN users u ON u.id = r.user_id
       JOIN products p ON p.id = r.product_id
       LEFT JOIN orders o ON o.id = r.order_id
-      WHERE 1=1`;
-
-    const params = [];
-
-    if (status && status !== 'all') {
-      sql += ' AND r.status = ?';
-      params.push(status);
-    }
-    if (rating) {
-      sql += ' AND r.rating = ?';
-      params.push(parseInt(rating));
-    }
-    if (search) {
-      sql += ' AND (u.first_name LIKE ? OR u.last_name LIKE ? OR p.name LIKE ? OR r.comment LIKE ? OR o.order_number LIKE ?)';
-      const q = `%${search}%`;
-      params.push(q, q, q, q, q);
-    }
+    `;
 
     // Count
-    const countSql = sql.replace(/SELECT r\.\*.*FROM/, 'SELECT COUNT(*) as total FROM');
-    const [[{ total }]] = await db.query(countSql, params);
+    const countSql = `SELECT COUNT(*) as total ${fromClause} ${whereClause}`;
+    const [countRows] = await db.query(countSql, whereParams);
+    const total = countRows[0]?.total || 0;
 
-    sql += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, (page - 1) * limit);
-
-    const [reviews] = await db.query(sql, params);
+    // Data
+    const dataSql = `
+      SELECT r.*, u.first_name, u.last_name, u.email,
+             p.name as product_name, o.order_number
+      ${fromClause}
+      ${whereClause}
+      ORDER BY r.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    const [reviews] = await db.query(dataSql, [...whereParams, safeLimit, offset]);
 
     return {
       reviews,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      pagination: { 
+        page: safePage, 
+        limit: safeLimit, 
+        total, 
+        totalPages: Math.ceil(total / safeLimit) || 1 
+      }
     };
   }
 
@@ -297,25 +314,27 @@ class ReviewService {
    * Admin: Get dashboard summary.
    */
   async getAdminSummary() {
-    const [[counts]] = await db.query(
+    const [countsRows] = await db.query(
       `SELECT
          COUNT(*) as total,
-         SUM(status = 'pending') as pending,
-         SUM(status = 'approved') as approved,
-         SUM(status = 'rejected') as rejected
+         COALESCE(SUM(status = 'pending'), 0) as pending,
+         COALESCE(SUM(status = 'approved'), 0) as approved,
+         COALESCE(SUM(status = 'rejected'), 0) as rejected
        FROM reviews`
     );
+    const counts = countsRows[0] || { total: 0, pending: 0, approved: 0, rejected: 0 };
 
-    const [[avgRow]] = await db.query(
+    const [avgRows] = await db.query(
       "SELECT COALESCE(AVG(rating), 0) as avg FROM reviews WHERE status = 'approved'"
     );
+    const avgRow = avgRows[0] || { avg: 0 };
 
     return {
-      total: counts.total,
-      pending: counts.pending || 0,
-      approved: counts.approved || 0,
-      rejected: counts.rejected || 0,
-      averageRating: parseFloat(Number(avgRow.avg).toFixed(1))
+      total: Number(counts.total) || 0,
+      pending: Number(counts.pending) || 0,
+      approved: Number(counts.approved) || 0,
+      rejected: Number(counts.rejected) || 0,
+      averageRating: parseFloat(Number(avgRow.avg || 0).toFixed(1))
     };
   }
 }
