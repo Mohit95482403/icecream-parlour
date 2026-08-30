@@ -11,7 +11,7 @@ exports.getWishlist = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching wishlist:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch wishlist' });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to fetch wishlist' });
   }
 };
 
@@ -32,7 +32,7 @@ exports.addItem = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding wishlist item:', error);
-    res.status(500).json({ success: false, message: 'Failed to add item to wishlist' });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to add item to wishlist' });
   }
 };
 
@@ -50,6 +50,6 @@ exports.removeItem = async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing wishlist item:', error);
-    res.status(500).json({ success: false, message: 'Failed to remove item from wishlist' });
+    res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Failed to remove item from wishlist' });
   }
 };
