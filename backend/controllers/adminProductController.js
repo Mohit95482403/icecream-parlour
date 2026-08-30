@@ -20,36 +20,38 @@ const adminProductController = {
       const limitNum = [10, 20, 50, 100].includes(parseInt(limit, 10)) ? parseInt(limit, 10) : 20;
       const offset = (pageNum - 1) * limitNum;
 
-      let whereClause = "1=1";
+      const whereConditions = [];
       const queryParams = [];
 
       // Search
-      if (search) {
-        whereClause += " AND (p.name LIKE ? OR c.name LIKE ? OR v.sku LIKE ?)";
-        const searchTerm = `%${search}%`;
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push('(p.name LIKE ? OR c.name LIKE ? OR EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.sku LIKE ?))');
         queryParams.push(searchTerm, searchTerm, searchTerm);
       }
 
       // Category
       if (category && category !== 'all') {
-        whereClause += " AND p.category_id = ?";
+        whereConditions.push('p.category_id = ?');
         queryParams.push(category);
       }
 
       // Status
       if (status && status !== 'all') {
-        whereClause += " AND p.status = ?";
+        whereConditions.push('p.status = ?');
         queryParams.push(status);
       }
 
       // Stock
       if (stock === 'in_stock') {
-        whereClause += " AND i.quantity > 0";
+        whereConditions.push('EXISTS (SELECT 1 FROM inventory inv JOIN product_variants pv ON inv.variant_id = pv.id WHERE pv.product_id = p.id AND inv.quantity > 0)');
       } else if (stock === 'low_stock') {
-        whereClause += " AND i.quantity > 0 AND i.quantity <= 10";
+        whereConditions.push('EXISTS (SELECT 1 FROM inventory inv JOIN product_variants pv ON inv.variant_id = pv.id WHERE pv.product_id = p.id AND inv.quantity > 0 AND inv.quantity <= 10)');
       } else if (stock === 'out_of_stock') {
-        whereClause += " AND (i.quantity = 0 OR i.quantity IS NULL)";
+        whereConditions.push('(SELECT COALESCE(SUM(inv.quantity), 0) FROM inventory inv JOIN product_variants pv ON inv.variant_id = pv.id WHERE pv.product_id = p.id) = 0');
       }
+
+      const whereSql = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
       // Sorting
       let orderBy = "p.created_at DESC";
@@ -57,47 +59,45 @@ const adminProductController = {
         case 'oldest': orderBy = "p.created_at ASC"; break;
         case 'name_asc': orderBy = "p.name ASC"; break;
         case 'name_desc': orderBy = "p.name DESC"; break;
-        case 'price_asc': orderBy = "v.price ASC"; break;
-        case 'price_desc': orderBy = "v.price DESC"; break;
-        case 'stock_asc': orderBy = "i.quantity ASC"; break;
-        case 'stock_desc': orderBy = "i.quantity DESC"; break;
+        case 'price_asc': orderBy = "price ASC"; break;
+        case 'price_desc': orderBy = "price DESC"; break;
+        case 'stock_asc': orderBy = "stock ASC"; break;
+        case 'stock_desc': orderBy = "stock DESC"; break;
         case 'newest':
         default: orderBy = "p.created_at DESC"; break;
       }
 
-      // Base query parts
-      const fromJoins = `
+      // Total Count
+      const countSql = `
+        SELECT COUNT(*) as total 
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.id 
+        ${whereSql}
+      `;
+      const [countResult] = await db.query(countSql, queryParams);
+      const total = countResult[0]?.total || 0;
+
+      // Paginated Data using MySQL 8 compatible scalar projections without ONLY_FULL_GROUP_BY conflicts
+      const dataSql = `
+        SELECT 
+          p.id, 
+          p.name, 
+          p.slug, 
+          p.status, 
+          p.created_at,
+          c.name AS category_name,
+          COALESCE((SELECT v.price FROM product_variants v WHERE v.product_id = p.id ORDER BY v.id ASC LIMIT 1), 0.00) AS price,
+          (SELECT v.sku FROM product_variants v WHERE v.product_id = p.id ORDER BY v.id ASC LIMIT 1) AS sku,
+          COALESCE((SELECT SUM(i.quantity) FROM inventory i JOIN product_variants pv ON i.variant_id = pv.id WHERE pv.product_id = p.id), 0) AS stock,
+          (SELECT img.image_url FROM product_images img WHERE img.product_id = p.id ORDER BY img.sort_order ASC, img.id ASC LIMIT 1) AS image_url
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
-        LEFT JOIN product_variants v ON p.id = v.product_id
-        LEFT JOIN inventory i ON v.id = i.variant_id
-        LEFT JOIN (
-          SELECT product_id, image_url
-          FROM product_images
-          WHERE sort_order = 0 OR sort_order IS NULL
-          GROUP BY product_id
-        ) img ON p.id = img.product_id
-      `;
-
-      // Get Total Count
-      const [countResult] = await db.query(`SELECT COUNT(DISTINCT p.id) as total ${fromJoins} WHERE ${whereClause}`, queryParams);
-      const total = countResult[0].total;
-
-      // Get Paginated Data
-      const query = `
-        SELECT 
-          p.id, p.name, p.slug, p.status, p.created_at,
-          c.name as category_name,
-          v.price, i.quantity as stock, v.sku,
-          img.image_url
-        ${fromJoins}
-        WHERE ${whereClause}
-        GROUP BY p.id
+        ${whereSql}
         ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `;
 
-      const [products] = await db.query(query, [...queryParams, limitNum, offset]);
+      const [products] = await db.query(dataSql, [...queryParams, limitNum, offset]);
 
       return res.status(200).json({
         success: true,
@@ -107,7 +107,7 @@ const adminProductController = {
             total,
             page: pageNum,
             limit: limitNum,
-            totalPages: Math.ceil(total / limitNum)
+            totalPages: Math.ceil(total / limitNum) || 1
           }
         }
       });
@@ -137,16 +137,18 @@ const adminProductController = {
 
       // Get variants and inventory
       const [variants] = await db.query(`
-        SELECT v.*, i.quantity as stock_quantity 
+        SELECT v.*, COALESCE(i.quantity, 0) as stock_quantity 
         FROM product_variants v
         LEFT JOIN inventory i ON v.id = i.variant_id
         WHERE v.product_id = ?
+        ORDER BY v.id ASC
       `, [id]);
       
       product.variant = variants.length > 0 ? variants[0] : null;
+      product.variants = variants;
 
       // Get images
-      const [images] = await db.query('SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC', [id]);
+      const [images] = await db.query('SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC', [id]);
       product.images = images;
 
       return res.status(200).json({
@@ -199,12 +201,14 @@ const adminProductController = {
       const productId = productResult.insertId;
 
       // Insert Default Variant
+      const defaultSku = (sku && sku.trim()) || `${slug.toUpperCase().slice(0, 8)}-STD-${Date.now().toString().slice(-4)}`;
       const [variantResult] = await connection.query(
-        'INSERT INTO product_variants (product_id, sku, name, price, compare_at_price, status) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO product_variants (product_id, sku, name, size, price, compare_at_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
           productId, 
-          sku || null, 
-          'Default Title', 
+          defaultSku, 
+          'Standard Size',
+          'Standard',
           parseFloat(price), 
           compare_at_price ? parseFloat(compare_at_price) : null, 
           'active'
@@ -215,16 +219,18 @@ const adminProductController = {
       // Insert Inventory
       await connection.query(
         'INSERT INTO inventory (variant_id, quantity) VALUES (?, ?)',
-        [variantId, parseInt(stock, 10)]
+        [variantId, parseInt(stock, 10) || 0]
       );
 
       // Insert Images
       if (images && images.length > 0) {
         for (let i = 0; i < images.length; i++) {
-          await connection.query(
-            'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)',
-            [productId, images[i], i]
-          );
+          if (images[i] && typeof images[i] === 'string' && images[i].trim()) {
+            await connection.query(
+              'INSERT INTO product_images (product_id, image_url, sort_order, is_primary) VALUES (?, ?, ?, ?)',
+              [productId, images[i].trim(), i, i === 0]
+            );
+          }
         }
       }
 
@@ -233,7 +239,8 @@ const adminProductController = {
 
       return res.status(201).json({
         success: true,
-        message: 'Product created successfully'
+        message: 'Product created successfully',
+        data: { id: productId }
       });
     } catch (error) {
       await connection.rollback();
@@ -294,7 +301,7 @@ const adminProductController = {
           category_id || currentProduct.category_id,
           newName,
           newSlug,
-          description !== undefined ? description.trim() : currentProduct.description,
+          description !== undefined ? (description ? description.trim() : null) : currentProduct.description,
           status || currentProduct.status,
           id
         ]
@@ -304,41 +311,50 @@ const adminProductController = {
       if (price !== undefined || stock !== undefined || sku !== undefined || compare_at_price !== undefined) {
         const [variants] = await connection.query('SELECT id FROM product_variants WHERE product_id = ? ORDER BY id ASC LIMIT 1', [id]);
         
+        let variantId;
         if (variants.length > 0) {
-          const variantId = variants[0].id;
+          variantId = variants[0].id;
           
-          let updateVariantParts = [];
-          let variantParams = [];
+          const updateVariantParts = [];
+          const variantParams = [];
 
           if (price !== undefined) { updateVariantParts.push('price = ?'); variantParams.push(parseFloat(price)); }
           if (compare_at_price !== undefined) { updateVariantParts.push('compare_at_price = ?'); variantParams.push(compare_at_price ? parseFloat(compare_at_price) : null); }
-          if (sku !== undefined) { updateVariantParts.push('sku = ?'); variantParams.push(sku); }
+          if (sku !== undefined && sku.trim()) { updateVariantParts.push('sku = ?'); variantParams.push(sku.trim()); }
 
           if (updateVariantParts.length > 0) {
             variantParams.push(variantId);
             await connection.query(`UPDATE product_variants SET ${updateVariantParts.join(', ')} WHERE id = ?`, variantParams);
           }
+        } else {
+          // Create variant if none existed
+          const defaultSku = (sku && sku.trim()) || `${newSlug.toUpperCase().slice(0, 8)}-STD-${Date.now().toString().slice(-4)}`;
+          const [newVar] = await connection.query(
+            'INSERT INTO product_variants (product_id, sku, name, size, price, compare_at_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [id, defaultSku, 'Standard Size', 'Standard', parseFloat(price) || 0, compare_at_price ? parseFloat(compare_at_price) : null, 'active']
+          );
+          variantId = newVar.insertId;
+        }
 
-          // Handle Inventory update
-          if (stock !== undefined) {
-            const [inv] = await connection.query('SELECT id FROM inventory WHERE variant_id = ?', [variantId]);
-            if (inv.length > 0) {
-              await connection.query('UPDATE inventory SET quantity = ? WHERE variant_id = ?', [parseInt(stock, 10), variantId]);
-            } else {
-              await connection.query('INSERT INTO inventory (variant_id, quantity) VALUES (?, ?)', [variantId, parseInt(stock, 10)]);
-            }
+        // Handle Inventory update
+        if (stock !== undefined && variantId) {
+          const [inv] = await connection.query('SELECT id FROM inventory WHERE variant_id = ?', [variantId]);
+          if (inv.length > 0) {
+            await connection.query('UPDATE inventory SET quantity = ? WHERE variant_id = ?', [parseInt(stock, 10) || 0, variantId]);
+          } else {
+            await connection.query('INSERT INTO inventory (variant_id, quantity) VALUES (?, ?)', [variantId, parseInt(stock, 10) || 0]);
           }
         }
       }
 
       // Handle Images update
-      if (images !== undefined) {
+      if (images !== undefined && Array.isArray(images)) {
         await connection.query('DELETE FROM product_images WHERE product_id = ?', [id]);
-        if (images.length > 0) {
-          for (let i = 0; i < images.length; i++) {
+        for (let i = 0; i < images.length; i++) {
+          if (images[i] && typeof images[i] === 'string' && images[i].trim()) {
             await connection.query(
-              'INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)',
-              [id, images[i], i]
+              'INSERT INTO product_images (product_id, image_url, sort_order, is_primary) VALUES (?, ?, ?, ?)',
+              [id, images[i].trim(), i, i === 0]
             );
           }
         }

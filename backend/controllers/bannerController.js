@@ -21,18 +21,11 @@ const bannerController = {
           p.name AS product_name,
           p.slug AS product_slug,
           p.status AS product_status,
-          v.price AS product_price,
-          v.compare_at_price AS product_compare_at_price,
-          img.image_url AS product_image
+          (SELECT v.price FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' ORDER BY v.id ASC LIMIT 1) AS product_price,
+          (SELECT v.compare_at_price FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' ORDER BY v.id ASC LIMIT 1) AS product_compare_at_price,
+          (SELECT img.image_url FROM product_images img WHERE img.product_id = p.id ORDER BY img.sort_order ASC, img.id ASC LIMIT 1) AS product_image
         FROM new_flavour_banners b
         LEFT JOIN products p ON b.product_id = p.id
-        LEFT JOIN product_variants v ON (p.id = v.product_id AND v.status = 'active')
-        LEFT JOIN (
-          SELECT product_id, image_url
-          FROM product_images
-          WHERE sort_order = 0 OR sort_order IS NULL
-          GROUP BY product_id
-        ) img ON p.id = img.product_id
         WHERE b.status = 'active'
         ORDER BY b.updated_at DESC
         LIMIT 1
@@ -74,10 +67,9 @@ const bannerController = {
           b.*,
           p.name AS product_name,
           p.slug AS product_slug,
-          v.price AS product_price
+          (SELECT v.price FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' ORDER BY v.id ASC LIMIT 1) AS product_price
         FROM new_flavour_banners b
         LEFT JOIN products p ON b.product_id = p.id
-        LEFT JOIN product_variants v ON (p.id = v.product_id AND v.status = 'active')
         ORDER BY b.id ASC
         LIMIT 1
       `);
@@ -89,11 +81,9 @@ const bannerController = {
           p.name,
           p.slug,
           p.status,
-          v.price
+          (SELECT v.price FROM product_variants v WHERE v.product_id = p.id AND v.status = 'active' ORDER BY v.id ASC LIMIT 1) AS price
         FROM products p
-        LEFT JOIN product_variants v ON (p.id = v.product_id AND v.status = 'active')
         WHERE p.status = 'active'
-        GROUP BY p.id
         ORDER BY p.name ASC
       `);
 
