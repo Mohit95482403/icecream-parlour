@@ -1,4 +1,5 @@
 import api from './api';
+import adminApi from '../utils/adminApi';
 
 export const giftCardService = {
   /**
@@ -41,7 +42,7 @@ export const giftCardService = {
     return response;
   },
 
-  // ── Admin Endpoints ──────────────────────────────────────────────────
+  // ── Admin Endpoints (using adminApi with admin JWT) ──────────────────
 
   /**
    * Admin: List / search gift cards with pagination
@@ -53,56 +54,56 @@ export const giftCardService = {
     if (search) params.append('search', search);
     if (status && status !== 'all') params.append('status', status);
 
-    const response = await api.get(`/admin/gift-cards?${params.toString()}`);
-    return response;
+    const response = await adminApi.get(`/gift-cards?${params.toString()}`);
+    return response.data;
   },
 
   /**
    * Admin: Get single gift card details with transaction history
    */
   adminGetGiftCard: async (cardId) => {
-    const response = await api.get(`/admin/gift-cards/${cardId}`);
-    return response;
+    const response = await adminApi.get(`/gift-cards/${cardId}`);
+    return response.data;
   },
 
   /**
    * Admin: Issue a new gift card directly
    */
   adminIssueGiftCard: async (payload) => {
-    const response = await api.post('/admin/gift-cards/issue', payload);
-    return response;
+    const response = await adminApi.post('/gift-cards/issue', payload);
+    return response.data;
   },
 
   /**
    * Admin: Suspend a gift card
    */
   adminSuspendGiftCard: async (cardId, reason) => {
-    const response = await api.put(`/admin/gift-cards/${cardId}/suspend`, { reason });
-    return response;
+    const response = await adminApi.put(`/gift-cards/${cardId}/suspend`, { reason });
+    return response.data;
   },
 
   /**
    * Admin: Reactivate a gift card
    */
   adminActivateGiftCard: async (cardId) => {
-    const response = await api.put(`/admin/gift-cards/${cardId}/activate`);
-    return response;
+    const response = await adminApi.put(`/gift-cards/${cardId}/activate`);
+    return response.data;
   },
 
   /**
    * Admin: Adjust balance
    */
   adminAdjustBalance: async (cardId, amount, reason) => {
-    const response = await api.post(`/admin/gift-cards/${cardId}/adjust`, { amount, reason });
-    return response;
+    const response = await adminApi.post(`/gift-cards/${cardId}/adjust`, { amount, reason });
+    return response.data;
   },
 
   /**
    * Admin: Delete / Revoke gift card
    */
   adminDeleteGiftCard: async (cardId, reason) => {
-    const response = await api.delete(`/admin/gift-cards/${cardId}`, { data: { reason } });
-    return response;
+    const response = await adminApi.delete(`/gift-cards/${cardId}`, { data: { reason } });
+    return response.data;
   }
 };
 

@@ -72,7 +72,15 @@ const AdminGiftCardsPage = () => {
       }
     } catch (err) {
       console.error('Failed to load admin gift cards:', err);
-      toast.error('Failed to load gift cards');
+      if (err.response?.status === 401) {
+        toast.error('Admin session expired. Please sign in again.');
+      } else if (err.response?.status === 403) {
+        toast.error('Admin permission denied.');
+      } else if (err.response?.status === 404) {
+        toast.error('Gift cards endpoint not found.');
+      } else {
+        toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to load gift cards');
+      }
     } finally {
       setLoading(false);
     }
@@ -105,7 +113,7 @@ const AdminGiftCardsPage = () => {
         fetchCards();
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to issue gift card');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to issue gift card');
     } finally {
       setIssuing(false);
     }
@@ -120,7 +128,7 @@ const AdminGiftCardsPage = () => {
         fetchCards();
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to suspend card');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to suspend card');
     }
   };
 
@@ -132,7 +140,7 @@ const AdminGiftCardsPage = () => {
         fetchCards();
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to activate card');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to activate card');
     }
   };
 
@@ -157,7 +165,7 @@ const AdminGiftCardsPage = () => {
         fetchCards();
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to adjust balance');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to adjust balance');
     } finally {
       setAdjusting(false);
     }
@@ -177,7 +185,7 @@ const AdminGiftCardsPage = () => {
       }
     } catch (err) {
       console.error('Error deleting gift card:', err);
-      toast.error(err.message || 'Unable to delete gift card. Please try again.');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Unable to delete gift card. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -192,7 +200,7 @@ const AdminGiftCardsPage = () => {
         setTransactions(res.data.transactions || []);
       }
     } catch (err) {
-      toast.error('Failed to load card details');
+      toast.error(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to load card details');
     } finally {
       setLedgerLoading(false);
     }
