@@ -14,7 +14,8 @@ function extractToken(req) {
     if (trimmed.toLowerCase().startsWith('bearer ')) {
       token = trimmed.slice(7).trim();
     } else {
-      token = trimmed;
+      // Header present but missing 'Bearer ' scheme -> invalid format
+      return null;
     }
   }
 
@@ -52,7 +53,14 @@ const authMiddleware = {
     try {
       const authHeader = req.headers?.authorization || req.headers?.Authorization;
       const hasHeader = typeof authHeader === 'string' && authHeader.trim().length > 0;
+      const scheme = hasHeader ? authHeader.trim().split(' ')[0] : null;
       const token = extractToken(req);
+
+      // Safe non-sensitive diagnostic logging
+      if (process.env.NODE_ENV !== 'test') {
+        const segments = token ? token.split('.') : [];
+        console.log(`[AUTH DEBUG] route: ${req.originalUrl || req.url} | authPresent: ${hasHeader} | scheme: ${scheme || 'none'} | tokenPresent: ${!!token} | tokenLen: ${token ? token.length : 0} | formatValid: ${segments.length === 3}`);
+      }
 
       if (!token) {
         return res.status(401).json({

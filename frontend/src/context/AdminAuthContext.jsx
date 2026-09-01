@@ -67,6 +67,12 @@ export const AdminAuthProvider = ({ children }) => {
   }, []);
 
   const adminLogin = async ({ email, password }) => {
+    // Clear any stale admin auth data prior to fresh login attempt
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    setAdminUser(null);
+    setIsAdminAuthenticated(false);
+
     const res = await adminApi.post('/auth/login', { email, password });
     if (res.data?.success && res.data?.data) {
       const { admin, token } = res.data.data;
