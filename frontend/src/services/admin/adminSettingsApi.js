@@ -1,11 +1,15 @@
-import api from '../api';
+import adminApi from '../../utils/adminApi';
 
 export const adminSettingsApi = {
   getSettings: async () => {
-    return await api.get('/admin/settings');
+    const res = await adminApi.get('/settings');
+    return res.data;
   },
   
   updateSettings: async (settings) => {
-    return await api.put('/admin/settings', { settings });
+    const res = await adminApi.put('/settings', { settings });
+    return res.data;
   }
 };
+
+export default adminSettingsApi;

@@ -1,20 +1,20 @@
-import api from '../api';
+import adminApi from '../../utils/adminApi';
 
 export const adminBannerApi = {
   /**
    * Fetch admin banner config and product catalog for dropdown.
    */
   getBanner: async () => {
-    const res = await api.get('/admin/banner');
-    return res.data;
+    const res = await adminApi.get('/banner');
+    return res.data?.data || res.data;
   },
 
   /**
    * Update banner configuration.
    */
   updateBanner: async (data) => {
-    const res = await api.put('/admin/banner', data);
-    return res;
+    const res = await adminApi.put('/banner', data);
+    return res.data?.data || res.data;
   },
 
   /**
@@ -23,12 +23,12 @@ export const adminBannerApi = {
   uploadMedia: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await api.post('/admin/banner/upload', formData, {
+    const res = await adminApi.post('/banner/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
-    return res.data;
+    return res.data?.data || res.data;
   }
 };
 

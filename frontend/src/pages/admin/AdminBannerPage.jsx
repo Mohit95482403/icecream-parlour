@@ -122,7 +122,7 @@ const AdminBannerPage = () => {
       }
     } catch (err) {
       console.error('Upload error:', err);
-      toast.error(err.message || 'Failed to upload image');
+      toast.error(err.response?.data?.message || err.message || 'Failed to upload image');
     } finally {
       if (type === 'desktop') setUploadingDesktop(false);
       if (type === 'mobile') setUploadingMobile(false);
@@ -151,7 +151,7 @@ const AdminBannerPage = () => {
       toast.success('New Flavour Banner saved successfully!');
     } catch (err) {
       console.error('Save error:', err);
-      toast.error(err.message || 'Failed to save banner');
+      toast.error(err.response?.data?.message || err.message || 'Failed to save banner');
     } finally {
       setSaving(false);
     }
