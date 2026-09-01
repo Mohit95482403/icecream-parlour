@@ -12,8 +12,16 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      // If no token exists, do not trigger unnecessary 401 calls
-      if (!token) {
+      // If no valid token exists, clean up and do not trigger unnecessary 401 calls
+      if (
+        !token ||
+        typeof token !== 'string' ||
+        token.trim() === '' ||
+        token === 'undefined' ||
+        token === 'null' ||
+        token === '[object Object]'
+      ) {
+        if (token) localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
         setIsLoading(false);
@@ -44,8 +52,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const response = await authService.login(credentials);
     const token = response?.data?.token || response?.token;
-    if (token) {
-      localStorage.setItem('token', token);
+    if (
+      token &&
+      typeof token === 'string' &&
+      token.trim() !== '' &&
+      token !== 'undefined' &&
+      token !== 'null' &&
+      token !== '[object Object]'
+    ) {
+      localStorage.setItem('token', token.trim());
     }
     if (response?.data?.customer) {
       setUser(response.data.customer);
@@ -57,8 +72,15 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     const response = await authService.register(userData);
     const token = response?.data?.token || response?.token;
-    if (token) {
-      localStorage.setItem('token', token);
+    if (
+      token &&
+      typeof token === 'string' &&
+      token.trim() !== '' &&
+      token !== 'undefined' &&
+      token !== 'null' &&
+      token !== '[object Object]'
+    ) {
+      localStorage.setItem('token', token.trim());
     }
     if (response?.data?.customer) {
       setUser(response.data.customer);
@@ -71,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await authService.logout();
     } catch (err) {
-      console.error('Logout error', err);
+      console.warn('Logout error', err);
     } finally {
       localStorage.removeItem('token');
       setUser(null);

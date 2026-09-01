@@ -50,12 +50,13 @@ const OrderSuccess = () => {
     try {
       setDownloadingInvoice(true);
       const token = localStorage.getItem('token');
+      const isValidToken = token && typeof token === 'string' && token.trim() !== '' && token !== 'undefined' && token !== 'null';
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/orders/${order?.order_number || orderNumber}/invoice`,
         {
           responseType: 'blob',
           withCredentials: true,
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
+          headers: isValidToken ? { Authorization: `Bearer ${token.trim()}` } : {}
         }
       );
       const url = window.URL.createObjectURL(new Blob([response.data]));

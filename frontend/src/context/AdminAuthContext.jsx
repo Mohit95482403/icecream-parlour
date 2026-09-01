@@ -22,7 +22,16 @@ export const AdminAuthProvider = ({ children }) => {
 
   const checkAdminAuth = async () => {
     const token = localStorage.getItem('adminToken');
-    if (!token) {
+    if (
+      !token ||
+      typeof token !== 'string' ||
+      token.trim() === '' ||
+      token === 'undefined' ||
+      token === 'null' ||
+      token === '[object Object]'
+    ) {
+      if (token) localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
       setAdminUser(null);
       setIsAdminAuthenticated(false);
       setIsAdminLoading(false);
@@ -61,8 +70,15 @@ export const AdminAuthProvider = ({ children }) => {
     const res = await adminApi.post('/auth/login', { email, password });
     if (res.data?.success && res.data?.data) {
       const { admin, token } = res.data.data;
-      if (token) {
-        localStorage.setItem('adminToken', token);
+      if (
+        token &&
+        typeof token === 'string' &&
+        token.trim() !== '' &&
+        token !== 'undefined' &&
+        token !== 'null' &&
+        token !== '[object Object]'
+      ) {
+        localStorage.setItem('adminToken', token.trim());
       }
       if (admin) {
         localStorage.setItem('adminUser', JSON.stringify(admin));

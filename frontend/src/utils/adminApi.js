@@ -8,11 +8,19 @@ const adminApi = axios.create({
   withCredentials: true // send cookies
 });
 
-// Request interceptor to attach Authorization header if adminToken exists in storage
+// Request interceptor to attach Authorization header only when a valid adminToken exists in storage
 adminApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('adminToken');
-  if (token && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (
+    token &&
+    typeof token === 'string' &&
+    token.trim() !== '' &&
+    token !== 'undefined' &&
+    token !== 'null' &&
+    token !== '[object Object]' &&
+    !config.headers.Authorization
+  ) {
+    config.headers.Authorization = `Bearer ${token.trim()}`;
   }
   return config;
 });

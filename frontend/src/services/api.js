@@ -8,11 +8,19 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor to attach Authorization header if token is stored
+// Request interceptor to attach Authorization header only when a valid token is stored
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (
+    token &&
+    typeof token === 'string' &&
+    token.trim() !== '' &&
+    token !== 'undefined' &&
+    token !== 'null' &&
+    token !== '[object Object]' &&
+    !config.headers.Authorization
+  ) {
+    config.headers.Authorization = `Bearer ${token.trim()}`;
   }
   return config;
 });
@@ -23,7 +31,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
-      // If we got 401 on an authenticated request (not login/register), clear the invalid token
+      // If we got 401 on an authenticated customer request (not login/register), clear the invalid token
       if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
         localStorage.removeItem('token');
       }
@@ -38,6 +46,7 @@ api.interceptors.response.use(
     if (data?.error?.code) {
       err.code = data.error.code;
     }
+    err.response = error.response;
     return Promise.reject(err);
   }
 );
