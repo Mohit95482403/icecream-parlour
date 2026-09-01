@@ -64,4 +64,13 @@ const adminGiftCardsApi = {
   }
 };
 
+// Aliases for seamless naming compatibility
+adminGiftCardsApi.adminListGiftCards = adminGiftCardsApi.getGiftCards;
+adminGiftCardsApi.adminGetGiftCard = adminGiftCardsApi.getGiftCardById;
+adminGiftCardsApi.adminIssueGiftCard = adminGiftCardsApi.issueGiftCard;
+adminGiftCardsApi.adminSuspendGiftCard = adminGiftCardsApi.suspendGiftCard;
+adminGiftCardsApi.adminActivateGiftCard = adminGiftCardsApi.activateGiftCard;
+adminGiftCardsApi.adminAdjustBalance = adminGiftCardsApi.adjustBalance;
+adminGiftCardsApi.adminDeleteGiftCard = adminGiftCardsApi.deleteGiftCard;
+
 export default adminGiftCardsApi;

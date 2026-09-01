@@ -23,7 +23,7 @@ import {
   Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import giftCardService from '../../services/giftCardService';
+import adminGiftCardsApi from '../../services/admin/adminGiftCardsApi';
 
 const AdminGiftCardsPage = () => {
   const [cards, setCards] = useState([]);
@@ -59,7 +59,7 @@ const AdminGiftCardsPage = () => {
   const fetchCards = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await giftCardService.adminListGiftCards({
+      const res = await adminGiftCardsApi.adminListGiftCards({
         page: pagination.page,
         limit: pagination.limit,
         search,
@@ -99,7 +99,7 @@ const AdminGiftCardsPage = () => {
 
     try {
       setIssuing(true);
-      const res = await giftCardService.adminIssueGiftCard(issueForm);
+      const res = await adminGiftCardsApi.adminIssueGiftCard(issueForm);
       if (res.success) {
         toast.success(`Gift card of ₹${issueForm.amount} issued successfully!`);
         setIsIssueModalOpen(false);
@@ -122,7 +122,7 @@ const AdminGiftCardsPage = () => {
   const handleSuspend = async (cardId) => {
     if (!window.confirm('Are you sure you want to suspend this gift card?')) return;
     try {
-      const res = await giftCardService.adminSuspendGiftCard(cardId, 'Suspended by admin');
+      const res = await adminGiftCardsApi.adminSuspendGiftCard(cardId, 'Suspended by admin');
       if (res.success) {
         toast.success('Gift card suspended');
         fetchCards();
@@ -134,7 +134,7 @@ const AdminGiftCardsPage = () => {
 
   const handleActivate = async (cardId) => {
     try {
-      const res = await giftCardService.adminActivateGiftCard(cardId);
+      const res = await adminGiftCardsApi.adminActivateGiftCard(cardId);
       if (res.success) {
         toast.success('Gift card activated');
         fetchCards();
@@ -153,7 +153,7 @@ const AdminGiftCardsPage = () => {
 
     try {
       setAdjusting(true);
-      const res = await giftCardService.adminAdjustBalance(
+      const res = await adminGiftCardsApi.adminAdjustBalance(
         adjustCard.id,
         parseFloat(adjustForm.amount),
         adjustForm.reason
@@ -175,7 +175,7 @@ const AdminGiftCardsPage = () => {
     if (!deleteCard) return;
     try {
       setDeleting(true);
-      const res = await giftCardService.adminDeleteGiftCard(deleteCard.id);
+      const res = await adminGiftCardsApi.adminDeleteGiftCard(deleteCard.id);
       if (res.success) {
         toast.success('Gift card deleted successfully.');
         setDeleteCard(null);
@@ -194,7 +194,7 @@ const AdminGiftCardsPage = () => {
   const openDetails = async (cardId) => {
     try {
       setLedgerLoading(true);
-      const res = await giftCardService.adminGetGiftCard(cardId);
+      const res = await adminGiftCardsApi.adminGetGiftCard(cardId);
       if (res.success && res.data) {
         setSelectedCard(res.data.card);
         setTransactions(res.data.transactions || []);

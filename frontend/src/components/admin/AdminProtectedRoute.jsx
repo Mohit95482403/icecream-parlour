@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { getValidAdminToken } from '../../utils/adminApi';
 
 const AdminProtectedRoute = ({ children }) => {
   const { adminUser, isAdminAuthenticated, isAdminLoading } = useAdminAuth();
@@ -14,7 +15,7 @@ const AdminProtectedRoute = ({ children }) => {
     );
   }
 
-  const token = localStorage.getItem('adminToken');
+  const token = getValidAdminToken();
   if (!isAdminAuthenticated || !token) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }

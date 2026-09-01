@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import adminApi from '../utils/adminApi';
+import adminApi, { getValidAdminToken } from '../utils/adminApi';
 
 export const AdminAuthContext = createContext(null);
 
@@ -14,23 +14,16 @@ export const AdminAuthProvider = ({ children }) => {
   });
 
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = getValidAdminToken();
     return !!token;
   });
 
   const [isAdminLoading, setIsAdminLoading] = useState(true);
 
   const checkAdminAuth = async () => {
-    const token = localStorage.getItem('adminToken');
-    if (
-      !token ||
-      typeof token !== 'string' ||
-      token.trim() === '' ||
-      token === 'undefined' ||
-      token === 'null' ||
-      token === '[object Object]'
-    ) {
-      if (token) localStorage.removeItem('adminToken');
+    const token = getValidAdminToken();
+    if (!token) {
+      localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUser');
       setAdminUser(null);
       setIsAdminAuthenticated(false);
