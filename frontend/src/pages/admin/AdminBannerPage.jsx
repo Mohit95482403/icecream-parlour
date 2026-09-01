@@ -82,7 +82,13 @@ const AdminBannerPage = () => {
       }
     } catch (err) {
       console.error('Failed to load banner configuration:', err);
-      toast.error('Failed to load banner configuration');
+      if (err.response?.status === 401) {
+        toast.error('Admin session expired. Please sign in again.');
+      } else if (err.response?.status === 403) {
+        toast.error('Admin permission denied.');
+      } else {
+        toast.error(err.response?.data?.message || err.message || 'Failed to load banner configuration');
+      }
     } finally {
       setLoading(false);
     }
@@ -151,7 +157,11 @@ const AdminBannerPage = () => {
       toast.success('New Flavour Banner saved successfully!');
     } catch (err) {
       console.error('Save error:', err);
-      toast.error(err.response?.data?.message || err.message || 'Failed to save banner');
+      if (err.response?.status === 401) {
+        toast.error('Admin session expired. Please sign in again.');
+      } else {
+        toast.error(err.response?.data?.message || err.message || 'Failed to save banner');
+      }
     } finally {
       setSaving(false);
     }
